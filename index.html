@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnimePulse Tracker</title>
+    
+    <!-- React 18 and Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS and FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.0/index.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        /* Hide scrollbar utility */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Smooth animations */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Ambient Glow Effects */
+        .glow-bg {
+            position: absolute; width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: -200px; left: -200px; border-radius: 50%; z-index: 0; pointer-events: none;
+        }
+        .glow-bg-2 {
+            position: absolute; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(147,51,234,0.1) 0%, rgba(0,0,0,0) 70%);
+            bottom: -100px; right: -100px; border-radius: 50%; z-index: 0; pointer-events: none;
+        }
+
+        /* Logo pulse animation */
+        @keyframes logoPulse {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 107, 26, 0.4)); }
+            50% { filter: drop-shadow(0 0 20px rgba(255, 51, 102, 0.6)); }
+        }
+        .logo-pulse { animation: logoPulse 3s ease-in-out infinite; }
+
+        /* Pulse wave animation */
+        @keyframes pulseWave {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .pulse-wave { animation: pulseWave 2s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-white dark:bg-black text-gray-900 dark:text-white transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // Improved AnimePulse Logo Component
+        const AnimePulseLogo = ({ size = 32, animated = true, showText = true }) => (
+            <div className={`flex items-center gap-2 shrink-0 ${animated ? 'logo-pulse' : ''}`}>
+                {/* Icon */}
+                <svg viewBox="0 0 64 64" width={size} height={size} xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#ff6b35" />
+                            <stop offset="50%" stopColor="#f72585" />
+                            <stop offset="100%" stopColor="#7209b7" />
+                        </linearGradient>
+                        <linearGradient id="iconGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#4cc9f0" />
+                            <stop offset="100%" stopColor="#4361ee" />
+                        </linearGradient>
+                        <filter id="iconGlow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    
+                    {/* Background rounded square */}
+                    <rect x="4" y="4" width="56" height="56" rx="14" ry="14" fill="url(#iconGrad)" />
+                    
+                    {/* Inner glow */}
+                    <rect x="6" y="6" width="52" height="52" rx="12" ry="12" fill="none" stroke="white" strokeOpacity="0.2" strokeWidth="1" />
+                    
+                    {/* Stylized play button / triangle */}
+                    <path 
+                        d="M 24 20 L 44 32 L 24 44 Z" 
+                        fill="white" 
+                        fillOpacity="0.95"
+                        filter="url(#iconGlow)"
+                    />
+                    
+                    {/* Pulse wave lines on right side */}
+                    <path 
+                        d="M 48 24 L 52 24" 
+                        stroke="url(#iconGrad2)" 
+                        strokeWidth="2.5" 
+                        strokeLinecap="round"
+                        className="pulse-wave"
+                    />
+                    <path 
+                        d="M 48 32 L 56 32" 
+                        stroke="url(#iconGrad2)" 
+                        strokeWidth="2.5" 
+                        strokeLinecap="round"
+                        className="pulse-wave"
+                        style={{ animationDelay: '0.3s' }}
+                    />
+                    <path 
+                        d="M 48 40 L 52 40" 
+                        stroke="url(#iconGrad2)" 
+                        strokeWidth="2.5" 
+                        strokeLinecap="round"
+                        className="pulse-wave"
+                        style={{ animationDelay: '0.6s' }}
+                    />
+                    
+                    {/* Small sparkle */}
+                    <path 
+                        d="M 14 14 L 15 17 L 18 18 L 15 19 L 14 22 L 13 19 L 10 18 L 13 17 Z" 
+                        fill="white" 
+                        fillOpacity="0.8"
+                    />
+                </svg>
+                
+                {/* Text Logo */}
+                {showText && (
+                    <svg viewBox="0 0 200 50" width={size * 2.8} height={size * 0.7} xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#ff6b35" />
+                                <stop offset="50%" stopColor="#f72585" />
+                                <stop offset="100%" stopColor="#7209b7" />
+                            </linearGradient>
+                        </defs>
+                        
+                        {/* "Anime" text */}
+                        <text 
+                            x="0" 
+                            y="38" 
+                            fontFamily="Inter, sans-serif" 
+                            fontSize="32" 
+                            fontWeight="800" 
+                            fill="url(#textGrad)"
+                        >
+                            Anime
+                        </text>
+                        
+                        {/* "Pulse" text */}
+                        <text 
+                            x="105" 
+                            y="38" 
+                            fontFamily="Inter, sans-serif" 
+                            fontSize="32" 
+                            fontWeight="300" 
+                            fill="url(#textGrad)"
+                        >
+                            Pulse
+                        </text>
+                    </svg>
+                )}
+            </div>
+        );
+
+        const initialAnime = [
+            { id: 1, profileId: 1, title: 'Cyberpunk: Edgerunners', season: 1, image: 'https://cdn.myanimelist.net/images/anime/1184/127022l.jpg', status: 'Completed', progress: 10, episodes: 10, rating: '9.2', isBookmarked: true },
+            { id: 2, profileId: 1, title: 'Jujutsu Kaisen', season: 2, image: 'https://cdn.myanimelist.net/images/anime/1171/109222l.jpg', status: 'Watching', progress: 14, episodes: 24, rating: '8.7', isBookmarked: false },
+            { id: 3, profileId: 1, title: 'Solo Leveling', season: 1, image: 'https://cdn.myanimelist.net/images/anime/1131/139042l.jpg', status: 'Watching', progress: 4, episodes: 12, rating: '8.5', isBookmarked: true },
+            { id: 4, profileId: 1, title: 'Frieren: Beyond Journey\'s End', season: 1, image: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', status: 'Plan to Watch', progress: 0, episodes: 28, rating: '9.4', isBookmarked: false },
+            { id: 5, profileId: 1, title: 'Chainsaw Man', season: 1, image: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', status: 'Completed', progress: 12, episodes: 12, rating: '8.6', isBookmarked: false },
+            { id: 6, profileId: 1, title: 'Attack on Titan', season: 4, image: 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg', status: 'Completed', progress: 89, episodes: 89, rating: '9.0', isBookmarked: true },
+            { id: 7, profileId: 2, title: 'One Punch Man', season: 1, image: 'https://cdn.myanimelist.net/images/anime/12/76049l.jpg', status: 'On Hold', progress: 5, episodes: 12, rating: '8.5', isBookmarked: false },
+            { id: 8, profileId: 2, title: 'Sword Art Online', season: 1, image: 'https://cdn.myanimelist.net/images/anime/11/39717l.jpg', status: 'Dropped', progress: 14, episodes: 25, rating: '7.2', isBookmarked: false }
+        ];
+
+        const AnimeCard = ({ anime, onUpdate, onDelete, onToggleBookmark }) => {
+            const [isEditing, setIsEditing] = useState(false);
+            const [editTitle, setEditTitle] = useState(anime.title);
+            const [editSeason, setEditSeason] = useState(anime.season || 1);
+            const [editEpisodes, setEditEpisodes] = useState(anime.episodes);
+            const [editImage, setEditImage] = useState(anime.image);
+            const [editStatus, setEditStatus] = useState(anime.status);
+
+            const getStatusBadge = (status) => {
+                switch(status) {
+                    case 'Watching': return <span className="text-[10px] uppercase tracking-wider font-bold text-blue-600 bg-blue-100 dark:text-blue-500 dark:bg-blue-500/10 px-2 py-1 rounded shadow-sm">Watching</span>;
+                    case 'Completed': return <span className="text-[10px] uppercase tracking-wider font-bold text-green-600 bg-green-100 dark:text-green-500 dark:bg-green-500/10 px-2 py-1 rounded shadow-sm">Completed</span>;
+                    case 'Plan to Watch': return <span className="text-[10px] uppercase tracking-wider font-bold text-purple-600 bg-purple-100 dark:text-purple-500 dark:bg-purple-500/10 px-2 py-1 rounded shadow-sm">Plan to Watch</span>;
+                    case 'On Hold': return <span className="text-[10px] uppercase tracking-wider font-bold text-amber-600 bg-amber-100 dark:text-amber-500 dark:bg-amber-500/10 px-2 py-1 rounded shadow-sm">On Hold</span>;
+                    case 'Dropped': return <span className="text-[10px] uppercase tracking-wider font-bold text-red-600 bg-red-100 dark:text-red-500 dark:bg-red-500/10 px-2 py-1 rounded shadow-sm">Dropped</span>;
+                    default: return null;
+                }
+            };
+
+            const handleProgressChange = (change) => {
+                let newProgress = anime.progress + change;
+                if (newProgress < 0) newProgress = 0;
+                if (anime.episodes > 0 && newProgress > anime.episodes) newProgress = anime.episodes;
+                
+                let newStatus = anime.status;
+                if (newProgress > 0 && newProgress < anime.episodes && anime.status === 'Plan to Watch') newStatus = 'Watching';
+                if (newProgress === anime.episodes && anime.episodes > 0) newStatus = 'Completed';
+
+                onUpdate(anime.id, { progress: newProgress, status: newStatus });
+            };
+
+            const handleSaveEdit = () => {
+                onUpdate(anime.id, { 
+                    title: editTitle, 
+                    season: editSeason,
+                    episodes: editEpisodes, 
+                    image: editImage, 
+                    status: editStatus 
+                });
+                setIsEditing(false);
+            };
+
+            return (
+                <div className="bg-white dark:bg-[#1a1a20] rounded-xl overflow-hidden border border-gray-200 dark:border-[#27272a] hover:border-blue-400 dark:hover:border-[#3f3f46] transition-all duration-300 group flex flex-col h-full shadow-md hover:shadow-xl">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 dark:bg-[#121216]">
+                        <img 
+                            src={anime.image} 
+                            alt={anime.title} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-90 group-hover:opacity-100"
+                            onError={(e) => { e.target.src = 'https://placehold.co/400x600/131B33/94A3B8?text=No+Image' }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/20 to-transparent opacity-60 dark:from-[#0a0a0c] dark:via-[#0a0a0c]/20 dark:opacity-80"></div>
+                        
+                        <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+                            {getStatusBadge(anime.status)}
+                            <div className="flex flex-col gap-2 items-end">
+                                {anime.rating !== "N/A" && !isEditing && (
+                                    <div className="bg-white/90 dark:bg-black/60 backdrop-blur-sm text-gray-900 dark:text-white rounded-full px-2 py-1 text-xs font-semibold flex items-center gap-1 shadow-md">
+                                        <i className="fa-solid fa-star text-amber-500 dark:text-amber-400 text-[10px]"></i>
+                                        {anime.rating}
+                                    </div>
+                                )}
+                                <button 
+                                    onClick={() => onToggleBookmark(anime.id)}
+                                    className={`w-8 h-8 rounded-full bg-white/90 dark:bg-black/60 backdrop-blur-sm shadow-md flex items-center justify-center transition-transform hover:scale-110 ${anime.isBookmarked ? 'text-blue-500' : 'text-gray-400 dark:text-gray-300 hover:text-blue-500'}`}
+                                >
+                                    <i className={`${anime.isBookmarked ? 'fa-solid' : 'fa-regular'} fa-bookmark text-sm`}></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-4 relative z-20 flex-grow flex flex-col">
+                        {isEditing ? (
+                            <div className="mb-3 space-y-3 flex-grow">
+                                <div>
+                                    <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Title</label>
+                                    <input 
+                                        type="text" 
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-[#121216] border border-gray-300 dark:border-[#27272a] text-sm rounded px-2 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Cover Image URL</label>
+                                    <input 
+                                        type="text" 
+                                        value={editImage}
+                                        onChange={(e) => setEditImage(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-[#121216] border border-gray-300 dark:border-[#27272a] text-sm rounded px-2 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Status</label>
+                                        <select 
+                                            value={editStatus} 
+                                            onChange={(e) => setEditStatus(e.target.value)}
+                                            className="w-full bg-gray-50 dark:bg-[#121216] border border-gray-300 dark:border-[#27272a] text-sm rounded px-2 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        >
+                                            <option value="Watching">Watching</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Plan to Watch">Plan to Watch</option>
+                                            <option value="On Hold">On Hold</option>
+                                            <option value="Dropped">Dropped</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Season No.</label>
+                                        <input 
+                                            type="number" 
+                                            value={editSeason}
+                                            onChange={(e) => setEditSeason(parseInt(e.target.value) || 1)}
+                                            className="w-full bg-gray-50 dark:bg-[#121216] border border-gray-300 dark:border-[#27272a] text-sm rounded px-2 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">Total Eps</label>
+                                        <input 
+                                            type="number" 
+                                            value={editEpisodes}
+                                            onChange={(e) => setEditEpisodes(parseInt(e.target.value) || 0)}
+                                            className="w-full bg-gray-50 dark:bg-[#121216] border border-gray-300 dark:border-[#27272a] text-sm rounded px-2 py-1.5 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 pt-2">
+                                    <button onClick={handleSaveEdit} className="flex-1 text-xs bg-blue-600 text-white py-1.5 rounded hover:bg-blue-700 font-medium transition-colors">Save</button>
+                                    <button onClick={() => {
+                                        setEditTitle(anime.title);
+                                        setEditSeason(anime.season || 1);
+                                        setEditEpisodes(anime.episodes);
+                                        setEditImage(anime.image);
+                                        setEditStatus(anime.status);
+                                        setIsEditing(false);
+                                    }} className="flex-1 text-xs bg-gray-100 dark:bg-[#121216] border border-gray-200 dark:border-[#27272a] text-gray-600 dark:text-gray-400 py-1.5 rounded hover:bg-gray-200 dark:hover:text-white font-medium transition-colors">Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-grow flex flex-col">
+                                <h3 className="text-base font-semibold truncate text-gray-900 dark:text-white mb-0 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" title={anime.title}>{anime.title}</h3>
+                                <p className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider mb-1">Season {anime.season || 1}</p>
+                                
+                                <div className="mt-auto pt-3">
+                                    <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
+                                        <span className="text-xs font-medium">Progress</span>
+                                        <span className="font-mono text-xs">{anime.progress} / {anime.episodes || '?'}</span>
+                                    </div>
+                                    
+                                    <div className="w-full bg-gray-200 dark:bg-[#121216] h-1.5 rounded-full overflow-hidden mb-4">
+                                        <div 
+                                            className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                                            style={{ width: `${anime.episodes ? (anime.progress / anime.episodes) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1 bg-gray-50 dark:bg-[#121216] rounded-lg p-1 border border-gray-200 dark:border-[#27272a]">
+                                            <button 
+                                                onClick={() => handleProgressChange(-1)}
+                                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-[#3f3f46] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                            >
+                                                <i className="fa-solid fa-minus text-[10px]"></i>
+                                            </button>
+                                            <span className="text-xs font-mono w-4 text-center text-gray-900 dark:text-white">{anime.progress}</span>
+                                            <button 
+                                                onClick={() => handleProgressChange(1)}
+                                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-[#3f3f46] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                            >
+                                                <i className="fa-solid fa-plus text-[10px]"></i>
+                                            </button>
+                                        </div>
+
+                                        <div className="flex gap-1">
+                                            <button 
+                                                onClick={() => setIsEditing(true)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-[#121216] hover:bg-blue-50 dark:hover:bg-[#3f3f46] border border-gray-200 dark:border-[#27272a] text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white transition-colors"
+                                            >
+                                                <i className="fa-solid fa-pen text-xs"></i>
+                                            </button>
+                                            <button 
+                                                onClick={() => onDelete(anime.id)}
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-[#121216] hover:bg-red-50 dark:hover:bg-red-500/20 border border-gray-200 dark:border-[#27272a] hover:border-red-200 dark:hover:border-red-500/50 text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
+                                            >
+                                                <i className="fa-solid fa-trash text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [currentView, setCurrentView] = useState('home');
+            const [isNavPinned, setIsNavPinned] = useState(true);
+            const [toastMessage, setToastMessage] = useState(null);
+
+            const [animeList, setAnimeList] = useState(initialAnime);
+            const [activeTab, setActiveTab] = useState('All');
+            const [searchQuery, setSearchQuery] = useState('');
+
+            const [appThemeMode, setAppThemeMode] = useState('system');
+
+            useEffect(() => {
+                const applyTheme = (mode) => {
+                    const isDark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    if (isDark) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                };
+
+                applyTheme(appThemeMode);
+
+                // Listen for system theme changes if set to system
+                if (appThemeMode === 'system') {
+                    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    const handleChange = () => applyTheme('system');
+                    mediaQuery.addEventListener('change', handleChange);
+                    return () => mediaQuery.removeEventListener('change', handleChange);
+                }
+            }, [appThemeMode]);
+
+            const [browserProfiles, setBrowserProfiles] = useState([
+                { id: 1, name: 'Main User', email: 'mainuser@animepulse.com', color: '#8ab4f8', avatar: '', themeMode: 'system' },
+                { id: 2, name: 'Anime Fan', email: 'fan@animepulse.com', color: '#f28b82', avatar: '', themeMode: 'light' }
+            ]);
+            const [activeProfileId, setActiveProfileId] = useState(1);
+            const [chromeName, setChromeName] = useState('Main User');
+            const [chromeEmail, setChromeEmail] = useState('mainuser@animepulse.com');
+            const [chromeTheme, setChromeTheme] = useState('#8ab4f8');
+            const [chromeAvatar, setChromeAvatar] = useState('');
+            const [activeSettingTab, setActiveSettingTab] = useState('account');
+            const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+            
+            const [isEditingProfile, setIsEditingProfile] = useState(false);
+            const [editProfName, setEditProfName] = useState('');
+            const [editProfEmail, setEditProfEmail] = useState('');
+            const [editProfTheme, setEditProfTheme] = useState('');
+            const [editProfAvatar, setEditProfAvatar] = useState('');
+            const [editProfThemeMode, setEditProfThemeMode] = useState('');
+            
+            const [offerSavePasswords, setOfferSavePasswords] = useState(true);
+            const [autoSignIn, setAutoSignIn] = useState(true);
+            const [savedPasswords, setSavedPasswords] = useState([
+                { id: 1, site: 'AnimePulse Database', username: 'main_user_db' }
+            ]);
+            const [newPassSite, setNewPassSite] = useState('');
+            const [newPassUser, setNewPassUser] = useState('');
+
+            const [syncEverything, setSyncEverything] = useState(true);
+            const [syncBookmarks, setSyncBookmarks] = useState(true);
+            const [syncHistory, setSyncHistory] = useState(true);
+
+            // Filter anime list for the currently active profile
+            const currentUserAnimeList = animeList.filter(anime => anime.profileId === activeProfileId);
+
+            const ToggleSwitch = ({ checked, onChange, disabled = false }) => (
+                <button 
+                    onClick={() => !disabled && onChange(!checked)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#292a2d] ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${checked ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                    <span 
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+                    />
+                </button>
+            );
+
+            const showToast = (message) => {
+                setToastMessage(message);
+                setTimeout(() => setToastMessage(null), 3000);
+            };
+
+            const handleUpdateAnime = (id, updates) => {
+                setAnimeList(prev => prev.map(anime => 
+                    anime.id === id ? { ...anime, ...updates } : anime
+                ));
+            };
+
+            const handleDeleteAnime = (id) => {
+                setAnimeList(prev => prev.filter(anime => anime.id !== id));
+                showToast("Anime deleted from list.");
+            };
+
+            const handleToggleBookmark = (id) => {
+                setAnimeList(prev => prev.map(anime => 
+                    anime.id === id ? { ...anime, isBookmarked: !anime.isBookmarked } : anime
+                ));
+            };
+
+            const renderHome = () => (
+                <div className="relative w-full h-full overflow-y-auto flex flex-col items-center pt-20 pb-10 px-6 scrollbar-hide">
+                    <div className="glow-bg"></div>
+                    <div className="glow-bg-2"></div>
+                    
+                    <div className="z-10 max-w-4xl w-full text-center fade-in">
+                        <div className="flex justify-center mb-8">
+                            <AnimePulseLogo size={80} showText={true} />
+                        </div>
+                        <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 dark:from-blue-400 dark:to-purple-500">
+                            Track Your Anime Journey
+                        </h1>
+                        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                            The ultimate platform to organize, discover, and synchronize your anime library across all your devices. Never lose your watch progress again.
+                        </p>
+                        
+                        <div className="flex justify-center gap-4 mb-20">
+                            <button onClick={() => setCurrentView('list')} className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-medium transition-all shadow-lg shadow-blue-500/30 transform hover:-translate-y-1">
+                                Go to My List
+                            </button>
+                            <button onClick={() => setCurrentView('settings')} className="px-8 py-3 bg-white dark:bg-[#2a2a2e] hover:bg-gray-50 dark:hover:bg-[#3a3a3e] text-gray-800 dark:text-white border border-gray-200 dark:border-[#3f3f46] shadow-sm rounded-full font-medium transition-all transform hover:-translate-y-1">
+                                Settings
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                            <div className="bg-white dark:bg-[#1e1e24] p-8 rounded-2xl border border-gray-200 dark:border-[#2d2d33] hover:border-blue-500/50 transition-all group hover:-translate-y-2 shadow-sm hover:shadow-xl hover:shadow-blue-500/10">
+                                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 dark:text-blue-400 text-2xl mb-6 group-hover:scale-110 transition-transform">
+                                    <i className="fa-solid fa-list-check"></i>
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100">Smart Tracking</h3>
+                                <p className="text-gray-500 dark:text-gray-400 leading-relaxed text-sm">Automatically update your episode progress and sync with external databases instantly.</p>
+                            </div>
+                            <div className="bg-white dark:bg-[#1e1e24] p-8 rounded-2xl border border-gray-200 dark:border-[#2d2d33] hover:border-purple-500/50 transition-all group hover:-translate-y-2 shadow-sm hover:shadow-xl hover:shadow-purple-500/10">
+                                <div className="w-12 h-12 bg-purple-50 dark:bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-500 dark:text-purple-400 text-2xl mb-6 group-hover:scale-110 transition-transform">
+                                    <i className="fa-solid fa-chart-pie"></i>
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100">Deep Analytics</h3>
+                                <p className="text-gray-500 dark:text-gray-400 leading-relaxed text-sm">Visualize your watching habits with beautiful charts, genre breakdowns, and time spent.</p>
+                            </div>
+                            <div className="bg-white dark:bg-[#1e1e24] p-8 rounded-2xl border border-gray-200 dark:border-[#2d2d33] hover:border-green-500/50 transition-all group hover:-translate-y-2 shadow-sm hover:shadow-xl hover:shadow-green-500/10">
+                                <div className="w-12 h-12 bg-green-50 dark:bg-green-500/10 rounded-xl flex items-center justify-center text-green-500 dark:text-green-400 text-2xl mb-6 group-hover:scale-110 transition-transform">
+                                    <i className="fa-solid fa-users"></i>
+                                </div>
+                                <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-gray-100">Multiple Profiles</h3>
+                                <p className="text-gray-500 dark:text-gray-400 leading-relaxed text-sm">Create unique profiles for your friends and family. Keep your lists completely separate.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer className="w-full mt-auto pt-16 pb-8 text-center text-gray-400 dark:text-gray-500 text-sm z-10 flex flex-col items-center">
+                        <div className="flex gap-6 mb-4">
+                            <span className="hover:text-blue-500 cursor-pointer transition-colors">Privacy Policy</span>
+                            <span className="hover:text-blue-500 cursor-pointer transition-colors">Terms of Service</span>
+                            <span className="hover:text-blue-500 cursor-pointer transition-colors">Contact</span>
+                        </div>
+                        <p>&copy; 2026 AnimePulse Tracker. All rights reserved.</p>
+                    </footer>
+                </div>
+            );
+
+            const renderList = () => {
+                const tabs = ['All', 'Watching', 'Completed', 'Plan to Watch', 'On Hold', 'Dropped'];
+                
+                const filteredAnimeList = currentUserAnimeList.filter(anime => {
+                    const matchesTab = activeTab === 'All' || anime.status === activeTab;
+                    const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase());
+                    return matchesTab && matchesSearch;
+                });
+
+                const totalAnime = currentUserAnimeList.length;
+                const episodesWatched = currentUserAnimeList.reduce((acc, curr) => acc + (curr.progress || 0), 0);
+
+                return (
+                    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 w-full h-full overflow-y-auto scrollbar-hide">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                                    <i className="fa-solid fa-bookmark text-blue-500"></i> My Library
+                                </h2>
+                                {searchQuery ? (
+                                    <p className="text-gray-500 dark:text-gray-400 mt-2">Showing results for "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"</p>
+                                ) : (
+                                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-[#1a1a20] px-3 py-1.5 rounded-full border border-gray-200 dark:border-[#27272a] shadow-sm flex items-center gap-2 transition-all">
+                                            <i className="fa-solid fa-layer-group text-blue-500"></i> {totalAnime} Anime
+                                        </span>
+                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-white dark:bg-[#1a1a20] px-3 py-1.5 rounded-full border border-gray-200 dark:border-[#27272a] shadow-sm flex items-center gap-2 transition-all">
+                                            <i className="fa-solid fa-clapperboard text-green-500"></i> {episodesWatched.toLocaleString()} Episodes Watched
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => {
+                                        const newAnime = {
+                                            id: Date.now(),
+                                            profileId: activeProfileId,
+                                            title: 'New Anime',
+                                            season: 1,
+                                            image: 'https://placehold.co/400x600/131B33/94A3B8?text=New+Anime',
+                                            status: activeTab !== 'All' ? activeTab : 'Plan to Watch',
+                                            progress: 0,
+                                            episodes: 12,
+                                            rating: 'N/A',
+                                            isBookmarked: false
+                                        };
+                                        setAnimeList([newAnime, ...animeList]);
+                                        setSearchQuery(''); 
+                                    }}
+                                    className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95"
+                                >
+                                    <i className="fa-solid fa-plus"></i> Add Entry
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                            {tabs.map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-4 md:px-5 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition-all border ${
+                                        activeTab === tab 
+                                        ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-500/30' 
+                                        : 'bg-white dark:bg-[#1a1a20] border-gray-200 dark:border-[#27272a] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500'
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+
+                        {filteredAnimeList.length === 0 ? (
+                            <div className="text-center py-16 md:py-20 bg-gray-50 dark:bg-[#1a1a20]/30 border border-gray-200 dark:border-[#27272a] border-dashed rounded-3xl mx-2 md:mx-0">
+                                <i className="fa-solid fa-ghost text-4xl md:text-5xl text-gray-300 dark:text-[#3f3f46] mb-4"></i>
+                                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">Nothing found</h3>
+                                <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
+                                    {searchQuery ? `No anime matching "${searchQuery}" in this list.` : "You don't have any anime in this list yet."}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 pb-20">
+                                {filteredAnimeList.map(anime => (
+                                    <AnimeCard 
+                                        key={anime.id} 
+                                        anime={anime} 
+                                        onUpdate={handleUpdateAnime}
+                                        onDelete={handleDeleteAnime}
+                                        onToggleBookmark={handleToggleBookmark}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderBookmarks = () => {
+                const bookmarkedAnimeList = currentUserAnimeList.filter(anime => {
+                    const matchesSearch = anime.title.toLowerCase().includes(searchQuery.toLowerCase());
+                    return anime.isBookmarked && matchesSearch;
+                });
+
+                return (
+                    <div className="animate-in fade-in duration-500 max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 w-full h-full overflow-y-auto scrollbar-hide">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                                    <i className="fa-solid fa-star text-amber-500"></i> My Bookmarks
+                                </h2>
+                                {searchQuery ? (
+                                    <p className="text-gray-500 dark:text-gray-400 mt-2">Showing results for "<span className="text-gray-900 dark:text-white">{searchQuery}</span>"</p>
+                                ) : (
+                                    <p className="text-gray-500 dark:text-gray-400 mt-2">Your favorite, saved anime all in one place.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {bookmarkedAnimeList.length === 0 ? (
+                            <div className="text-center py-16 md:py-20 bg-gray-50 dark:bg-[#1a1a20]/30 border border-gray-200 dark:border-[#27272a] border-dashed rounded-3xl mx-2 md:mx-0">
+                                <i className="fa-regular fa-bookmark text-4xl md:text-5xl text-gray-300 dark:text-[#3f3f46] mb-4"></i>
+                                <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2">No bookmarks yet</h3>
+                                <p className="text-sm md:text-base text-gray-500 dark:text-gray-400">
+                                    {searchQuery ? `No bookmarked anime matching "${searchQuery}".` : "Click the bookmark icon on any anime card to save it here."}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 pb-20">
+                                {bookmarkedAnimeList.map(anime => (
+                                    <AnimeCard 
+                                        key={anime.id} 
+                                        anime={anime} 
+                                        onUpdate={handleUpdateAnime}
+                                        onDelete={handleDeleteAnime}
+                                        onToggleBookmark={handleToggleBookmark}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderProfile = () => {
+                const initEdit = () => {
+                    setEditProfName(chromeName);
+                    setEditProfEmail(chromeEmail);
+                    setEditProfTheme(chromeTheme);
+                    setEditProfAvatar(chromeAvatar);
+                    setEditProfThemeMode(appThemeMode);
+                    setIsEditingProfile(true);
+                };
+
+                const saveProfile = () => {
+                    setChromeName(editProfName);
+                    setChromeEmail(editProfEmail);
+                    setChromeTheme(editProfTheme);
+                    setChromeAvatar(editProfAvatar);
+                    setAppThemeMode(editProfThemeMode);
+                    
+                    if (activeProfileId) {
+                        setBrowserProfiles(prev => prev.map(p => 
+                            p.id === activeProfileId ? { ...p, name: editProfName, email: editProfEmail, color: editProfTheme, avatar: editProfAvatar, themeMode: editProfThemeMode } : p
+                        ));
+                    }
+                    
+                    setIsEditingProfile(false);
+                    showToast("Profile updated successfully!");
+                };
+
+                const totalAnime = currentUserAnimeList.length;
+                const episodesWatched = currentUserAnimeList.reduce((acc, curr) => acc + (curr.progress || 0), 0);
+                const ratedAnime = currentUserAnimeList.filter(a => a.rating !== "N/A" && !isNaN(parseFloat(a.rating)));
+                const meanScore = ratedAnime.length > 0 
+                    ? (ratedAnime.reduce((acc, curr) => acc + parseFloat(curr.rating), 0) / ratedAnime.length).toFixed(1)
+                    : "0.0";
+
+                return (
+                    <div className="w-full h-full overflow-y-auto flex flex-col items-center pt-10 pb-20 fade-in relative scrollbar-hide">
+                        {isEditingProfile && (
+                            <div className="absolute top-10 w-full max-w-xl z-20 px-4 fade-in">
+                                <div className="bg-white dark:bg-[#202124] rounded-2xl shadow-2xl border border-blue-200 dark:border-blue-500/30 overflow-hidden">
+                                    <div className="p-6 border-b border-gray-200 dark:border-[#3c4043] flex justify-between items-center bg-gray-50 dark:bg-[#292a2d]">
+                                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Profile Info</h2>
+                                        <button onClick={() => setIsEditingProfile(false)} className="text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors">
+                                            <i className="fa-solid fa-xmark text-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div className="p-6 space-y-5">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                                            <input type="text" value={editProfName} onChange={e => setEditProfName(e.target.value)} className="w-full bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#5f6368] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                                            <input type="email" value={editProfEmail} onChange={e => setEditProfEmail(e.target.value)} className="w-full bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#5f6368] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Photo URL</label>
+                                            <input type="text" placeholder="https://example.com/avatar.jpg" value={editProfAvatar} onChange={e => setEditProfAvatar(e.target.value)} className="w-full bg-white dark:bg-[#121212] border border-gray-300 dark:border-[#5f6368] rounded-md px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"/>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave blank to use initial.</p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Theme Color</label>
+                                            <div className="flex flex-wrap gap-3">
+                                                {['#8ab4f8', '#f28b82', '#81c995', '#fde293', '#c58af9', '#5f6368'].map(color => (
+                                                    <button key={color} onClick={() => setEditProfTheme(color)} className={`w-8 h-8 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center ${editProfTheme === color ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-[#202124]' : ''}`} style={{ backgroundColor: color }}>
+                                                        {editProfTheme === color && <i className="fa-solid fa-check text-white text-xs"></i>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">App Appearance</label>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => setEditProfThemeMode('light')} className={`flex-1 py-2 rounded-md border flex items-center justify-center gap-2 transition-all ${editProfThemeMode === 'light' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-white dark:bg-black border-gray-300 dark:border-[#5f6368] text-gray-600 dark:text-gray-400'}`}>
+                                                    <i className="fa-solid fa-sun"></i> Light
+                                                </button>
+                                                <button onClick={() => setEditProfThemeMode('dark')} className={`flex-1 py-2 rounded-md border flex items-center justify-center gap-2 transition-all ${editProfThemeMode === 'dark' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-white dark:bg-black border-gray-300 dark:border-[#5f6368] text-gray-600 dark:text-gray-400'}`}>
+                                                    <i className="fa-solid fa-moon"></i> Dark
+                                                </button>
+                                                <button onClick={() => setEditProfThemeMode('system')} className={`flex-1 py-2 rounded-md border flex items-center justify-center gap-2 transition-all ${editProfThemeMode === 'system' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400' : 'bg-white dark:bg-black border-gray-300 dark:border-[#5f6368] text-gray-600 dark:text-gray-400'}`}>
+                                                    <i className="fa-solid fa-desktop"></i> System
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 border-t border-gray-200 dark:border-[#3c4043] flex justify-end gap-3 bg-gray-50 dark:bg-[#292a2d]">
+                                        <button onClick={() => setIsEditingProfile(false)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#3c4043] rounded-md transition-colors">Cancel</button>
+                                        <button onClick={saveProfile} className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className={`max-w-3xl w-full px-6 flex flex-col items-center text-center mb-10 transition-opacity duration-300 ${isEditingProfile ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                            {chromeAvatar ? (
+                                <img src={chromeAvatar} alt="Profile" className="w-24 h-24 rounded-full object-cover shadow-lg mb-4 border-4" style={{ borderColor: chromeTheme }} />
+                            ) : (
+                                <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl text-white shadow-lg mb-4" style={{ backgroundColor: chromeTheme }}>
+                                    {chromeName ? chromeName.charAt(0).toUpperCase() : '?'}
+                                </div>
+                            )}
+                            <h1 className="text-3xl font-medium text-gray-900 dark:text-[#e8eaed] mb-1">Welcome, {chromeName}</h1>
+                            <p className="text-gray-500 dark:text-[#9aa0a6]">Manage your info, privacy, and security to make AnimePulse work better for you.</p>
+                            
+                            <button onClick={initEdit} className="mt-6 px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-[#2a2a2e] dark:hover:bg-[#3a3a3e] text-gray-800 dark:text-white border border-gray-300 dark:border-[#3f3f46] rounded-full text-sm font-medium transition-all shadow-sm flex items-center gap-2">
+                                <i className="fa-solid fa-pen text-xs"></i> Edit Profile
+                            </button>
+                        </div>
+
+                        <div className="max-w-3xl w-full px-6 space-y-6">
+                            <div className={`bg-white dark:bg-[#202124] border border-gray-200 dark:border-[#3c4043] rounded-2xl overflow-hidden shadow-sm transition-opacity duration-300 ${isEditingProfile ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                <div className="p-6 border-b border-gray-200 dark:border-[#3c4043]">
+                                    <h2 className="text-xl font-normal text-gray-900 dark:text-[#e8eaed]">Basic info</h2>
+                                    <p className="text-sm text-gray-500 dark:text-[#9aa0a6] mt-1">Some info may be visible to other people using AnimePulse.</p>
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-[#303134] cursor-pointer transition-colors border-b border-gray-200 dark:border-[#3c4043]">
+                                        <div className="w-1/3 text-sm text-gray-500 dark:text-[#9aa0a6] font-medium uppercase tracking-wider">Profile Picture</div>
+                                        <div className="w-2/3 flex items-center justify-between">
+                                            <div className="text-gray-900 dark:text-[#e8eaed] text-sm flex items-center gap-4">
+                                                A picture helps personalize your account
+                                            </div>
+                                            {chromeAvatar ? (
+                                                <img src={chromeAvatar} className="w-10 h-10 rounded-full object-cover" alt="avatar" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg text-white" style={{ backgroundColor: chromeTheme }}>
+                                                    {chromeName ? chromeName.charAt(0).toUpperCase() : '?'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-[#303134] cursor-pointer transition-colors border-b border-gray-200 dark:border-[#3c4043]">
+                                        <div className="w-1/3 text-sm text-gray-500 dark:text-[#9aa0a6] font-medium uppercase tracking-wider">Name</div>
+                                        <div className="w-2/3 flex items-center justify-between">
+                                            <div className="text-gray-900 dark:text-[#e8eaed] text-sm">{chromeName}</div>
+                                            <i className="fa-solid fa-chevron-right text-gray-400 dark:text-[#9aa0a6]"></i>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-[#303134] cursor-pointer transition-colors">
+                                        <div className="w-1/3 text-sm text-gray-500 dark:text-[#9aa0a6] font-medium uppercase tracking-wider">Email</div>
+                                        <div className="w-2/3 flex items-center justify-between">
+                                            <div className="text-gray-900 dark:text-[#e8eaed] text-sm">{chromeEmail}</div>
+                                            <i className="fa-solid fa-chevron-right text-gray-400 dark:text-[#9aa0a6]"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={`bg-white dark:bg-[#202124] border border-gray-200 dark:border-[#3c4043] rounded-2xl overflow-hidden shadow-sm transition-opacity duration-300 ${isEditingProfile ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                <div className="p-6 border-b border-gray-200 dark:border-[#3c4043]">
+                                    <h2 className="text-xl font-normal text-gray-900 dark:text-[#e8eaed]">Library stats</h2>
+                                    <p className="text-sm text-gray-500 dark:text-[#9aa0a6] mt-1">A quick overview of your tracking journey.</p>
+                                </div>
+                                <div className="grid grid-cols-3 divide-x divide-gray-200 dark:divide-[#3c4043] border-b border-gray-200 dark:border-[#3c4043]">
+                                    <div className="p-6 text-center hover:bg-gray-50 dark:hover:bg-[#303134] transition-colors cursor-pointer">
+                                        <div className="text-3xl text-blue-500 dark:text-blue-400 mb-1">{totalAnime}</div>
+                                        <div className="text-xs text-gray-500 dark:text-[#9aa0a6] uppercase tracking-wider">Total Anime</div>
+                                    </div>
+                                    <div className="p-6 text-center hover:bg-gray-50 dark:hover:bg-[#303134] transition-colors cursor-pointer">
+                                        <div className="text-3xl text-green-500 dark:text-green-400 mb-1">{episodesWatched.toLocaleString()}</div>
+                                        <div className="text-xs text-gray-500 dark:text-[#9aa0a6] uppercase tracking-wider">Episodes Watched</div>
+                                    </div>
+                                    <div className="p-6 text-center hover:bg-gray-50 dark:hover:bg-[#303134] transition-colors cursor-pointer">
+                                        <div className="text-3xl text-amber-500 dark:text-yellow-400 mb-1">{meanScore}</div>
+                                        <div className="text-xs text-gray-500 dark:text-[#9aa0a6] uppercase tracking-wider">Mean Score</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderSettings = () => {
+                const updateActiveProfileData = (newName, newColor, newAvatar, newThemeMode) => {
+                    setChromeName(newName);
+                    setChromeTheme(newColor);
+                    setChromeAvatar(newAvatar);
+                    setAppThemeMode(newThemeMode);
+                    if (activeProfileId && !isCreatingProfile) {
+                        setBrowserProfiles(prev => prev.map(p => 
+                            p.id === activeProfileId ? { ...p, name: newName, color: newColor, avatar: newAvatar, themeMode: newThemeMode } : p
+                        ));
+                    }
+                };
+
+                const handleSettingTabChange = (tab) => {
+                    if (isCreatingProfile && tab !== 'customise') {
+                        setIsCreatingProfile(false);
+                        const activeProf = browserProfiles.find(p => p.id === activeProfileId);
+                        if (activeProf) {
+                            setChromeName(activeProf.name);
+                            setChromeTheme(activeProf.color);
+                            setChromeAvatar(activeProf.avatar);
+                            setAppThemeMode(activeProf.themeMode);
+                        } else {
+                            setChromeName('Guest');
+                            setChromeTheme('#5f6368');
+                            setChromeAvatar('');
+                            setAppThemeMode('dark');
+                        }
+                    }
+                    setActiveSettingTab(tab);
+                };
+
+                return (
+                    <div className="w-full h-full flex bg-white dark:bg-[#202124] fade-in">
+                        <div className="w-72 border-r border-gray-200 dark:border-[#3c4043] flex flex-col pt-4 overflow-y-auto shrink-0 bg-gray-50 dark:bg-[#202124] scrollbar-hide">
+                            <div className="px-6 pb-4 mb-2 text-xl text-gray-900 dark:text-[#e8eaed] font-medium">Settings</div>
+                            
+                            <div className="flex flex-col gap-1">
+                                <button onClick={() => handleSettingTabChange('passwords')} className={`flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left ${activeSettingTab === 'passwords' ? 'bg-blue-50 text-blue-600 dark:bg-[#3c4043] dark:text-[#8ab4f8] font-medium' : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]'}`}>
+                                    <i className="fa-solid fa-key w-4 text-center text-lg"></i> Passwords and autofill
+                                </button>
+                                
+                                <button onClick={() => handleSettingTabChange('account')} className={`flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left ${activeSettingTab === 'account' ? 'bg-blue-50 text-blue-600 dark:bg-[#3c4043] dark:text-[#8ab4f8] font-medium' : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]'}`}>
+                                    <i className="fa-regular fa-circle-user w-4 text-center text-lg"></i> Manage your AnimePulse Account
+                                </button>
+                                
+                                <button onClick={() => handleSettingTabChange('customise')} className={`flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left ${activeSettingTab === 'customise' ? 'bg-blue-50 text-blue-600 dark:bg-[#3c4043] dark:text-[#8ab4f8] font-medium' : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]'}`}>
+                                    <i className="fa-solid fa-pen w-4 text-center text-lg"></i> Customise profile
+                                </button>
+
+                                <button onClick={() => handleSettingTabChange('sync')} className={`flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left ${activeSettingTab === 'sync' ? 'bg-blue-50 text-blue-600 dark:bg-[#3c4043] dark:text-[#8ab4f8] font-medium' : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]'}`}>
+                                    <i className="fa-solid fa-rotate w-4 text-center text-lg"></i> Sync is {syncEverything ? 'on' : 'off'}
+                                </button>
+
+                                <div className="h-px bg-gray-200 dark:bg-[#3c4043] my-3 mx-4"></div>
+
+                                <button onClick={() => {
+                                    setIsCreatingProfile(true);
+                                    setChromeName('New Profile');
+                                    setChromeTheme('#f28b82');
+                                    setChromeAvatar('');
+                                    setAppThemeMode('dark');
+                                    setActiveSettingTab('customise');
+                                }} className="flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]">
+                                    <i className="fa-solid fa-user-plus w-4 text-center text-lg"></i> Add AnimePulse profile
+                                </button>
+
+                                <button onClick={() => {
+                                    setIsCreatingProfile(false);
+                                    setChromeName('Guest');
+                                    setChromeTheme('#5f6368');
+                                    setChromeAvatar('');
+                                    setAppThemeMode('dark');
+                                    setActiveProfileId(null); 
+                                    handleSettingTabChange('account');
+                                }} className="flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]">
+                                    <i className="fa-solid fa-user-shield w-4 text-center text-lg"></i> Open guest profile
+                                </button>
+
+                                <button onClick={() => handleSettingTabChange('manage_profiles')} className={`flex items-center gap-4 px-6 py-3 transition-colors text-sm text-left ${activeSettingTab === 'manage_profiles' ? 'bg-blue-50 text-blue-600 dark:bg-[#3c4043] dark:text-[#8ab4f8] font-medium' : 'hover:bg-gray-100 text-gray-700 dark:hover:bg-[#303134] dark:text-[#e8eaed]'}`}>
+                                    <i className="fa-solid fa-users-gear w-4 text-center text-lg"></i> Manage AnimePulse profiles
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto bg-white dark:bg-[#202124] flex justify-center relative scrollbar-hide">
+                            <div className="w-full max-w-3xl py-10 px-8">
+                                
+                                {activeSettingTab === 'passwords' && (
+                                    <div className="animate-in fade-in">
+                                        <h3 className="text-2xl font-normal text-gray-900 dark:text-[#e8eaed] mb-6">Password Manager</h3>
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] rounded-xl overflow-hidden mb-8 border border-gray-200 dark:border-[#3c4043]">
+                                            <div className="p-4 border-b border-gray-200 dark:border-[#3c4043] flex items-center justify-between">
+                                                <div className="text-gray-800 dark:text-[#e8eaed]">Offer to save passwords for AnimePulse</div>
+                                                <ToggleSwitch checked={offerSavePasswords} onChange={setOfferSavePasswords} />
+                                            </div>
+                                            <div className="p-4 flex items-center justify-between">
+                                                <div className="text-gray-800 dark:text-[#e8eaed]">Auto Sign-in</div>
+                                                <ToggleSwitch checked={autoSignIn} onChange={setAutoSignIn} />
+                                            </div>
+                                        </div>
+
+                                        <h4 className="text-gray-500 dark:text-[#9aa0a6] text-sm font-medium mb-3">Saved AnimePulse Credentials</h4>
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] rounded-xl overflow-hidden border border-gray-200 dark:border-[#3c4043] mb-6">
+                                            {savedPasswords.map(pw => (
+                                                <div key={pw.id} className="p-4 border-b border-gray-200 dark:border-[#3c4043] last:border-0 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-[#303134]">
+                                                    <div>
+                                                        <div className="text-gray-900 dark:text-[#e8eaed] font-medium">{pw.site}</div>
+                                                        <div className="text-gray-500 dark:text-[#9aa0a6] text-sm">{pw.username}</div>
+                                                    </div>
+                                                    <button onClick={() => setSavedPasswords(prev => prev.filter(p => p.id !== pw.id))} className="text-gray-400 dark:text-[#9aa0a6] hover:text-red-500 dark:hover:text-[#f28b82] p-2 rounded-full hover:bg-gray-200 dark:hover:bg-[#3c4043] transition-colors">
+                                                        <i className="fa-solid fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {savedPasswords.length === 0 && (
+                                                <div className="p-6 text-center text-gray-500 dark:text-[#9aa0a6] text-sm">No saved credentials for this site.</div>
+                                            )}
+                                        </div>
+
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] p-4 rounded-xl border border-gray-200 dark:border-[#3c4043]">
+                                            <h4 className="text-gray-900 dark:text-[#e8eaed] text-sm font-medium mb-3">Add Internal Credential</h4>
+                                            <div className="flex gap-2">
+                                                <input type="text" placeholder="Description (e.g. Alt Account)" value={newPassSite} onChange={(e) => setNewPassSite(e.target.value)} className="flex-1 bg-white dark:bg-[#202124] border border-gray-300 dark:border-[#5f6368] rounded px-3 py-2 text-gray-900 dark:text-[#e8eaed] text-sm outline-none focus:border-blue-500 dark:focus:border-[#8ab4f8]" />
+                                                <input type="text" placeholder="Username" value={newPassUser} onChange={(e) => setNewPassUser(e.target.value)} className="flex-1 bg-white dark:bg-[#202124] border border-gray-300 dark:border-[#5f6368] rounded px-3 py-2 text-gray-900 dark:text-[#e8eaed] text-sm outline-none focus:border-blue-500 dark:focus:border-[#8ab4f8]" />
+                                                <button onClick={() => {
+                                                    if(newPassSite && newPassUser) {
+                                                        setSavedPasswords(prev => [...prev, { id: Date.now(), site: newPassSite, username: newPassUser }]);
+                                                        setNewPassSite('');
+                                                        setNewPassUser('');
+                                                        showToast("Credential saved!");
+                                                    }
+                                                }} className="bg-blue-600 dark:bg-[#8ab4f8] text-white dark:text-[#202124] px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-300 transition-colors">Add</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeSettingTab === 'account' && (
+                                    <div className="animate-in fade-in">
+                                        <h3 className="text-2xl font-normal text-gray-900 dark:text-[#e8eaed] mb-6">Manage your AnimePulse Account</h3>
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] rounded-xl overflow-hidden border border-gray-200 dark:border-[#3c4043] p-8 flex flex-col items-center justify-center text-center">
+                                            {chromeAvatar ? (
+                                                <img src={chromeAvatar} alt="Profile" className="w-20 h-20 rounded-full object-cover shadow-md mb-4 border-2" style={{ borderColor: chromeTheme }} />
+                                            ) : (
+                                                <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl text-white shadow-md mb-4" style={{ backgroundColor: chromeTheme }}>
+                                                    {chromeName ? chromeName.charAt(0).toUpperCase() : '?'}
+                                                </div>
+                                            )}
+                                            <h2 className="text-xl font-medium text-gray-900 dark:text-[#e8eaed] mb-1">{chromeName}</h2>
+                                            <p className="text-gray-500 dark:text-[#9aa0a6] text-sm mb-6">
+                                                {activeProfileId === null ? "Browsing as Guest. History and settings will not be saved." : chromeEmail}
+                                            </p>
+                                            <button onClick={() => setCurrentView('profile')} className="bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-[#8ab4f8] dark:text-[#202124] px-6 py-2 rounded-md font-medium text-sm dark:hover:bg-blue-300 transition-colors">
+                                                View Detailed Profile
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeSettingTab === 'customise' && (
+                                    <div className="animate-in fade-in">
+                                        <h3 className="text-2xl font-normal text-gray-900 dark:text-[#e8eaed] mb-6">Customise profile</h3>
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] rounded-xl p-8 flex flex-col md:flex-row gap-10 border border-gray-200 dark:border-[#3c4043]">
+                                            <div className="flex-1">
+                                                <label className="block text-gray-900 dark:text-[#e8eaed] text-sm font-medium mb-3">Name your profile</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={chromeName}
+                                                    onChange={(e) => updateActiveProfileData(e.target.value, chromeTheme, chromeAvatar, appThemeMode)}
+                                                    className="w-full bg-white dark:bg-[#202124] border border-gray-300 dark:border-[#5f6368] rounded-md px-4 py-3 text-gray-900 dark:text-[#e8eaed] focus:border-blue-500 dark:focus:border-[#8ab4f8] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#8ab4f8] transition-all"
+                                                    disabled={activeProfileId === null && !isCreatingProfile}
+                                                />
+                                                <p className="text-gray-500 dark:text-[#9aa0a6] text-xs mt-2 mb-6">This name appears when you open AnimePulse.</p>
+
+                                                <label className="block text-gray-900 dark:text-[#e8eaed] text-sm font-medium mb-3">Profile Photo URL (Optional)</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="https://..."
+                                                    value={chromeAvatar}
+                                                    onChange={(e) => updateActiveProfileData(chromeName, chromeTheme, e.target.value, appThemeMode)}
+                                                    className="w-full bg-white dark:bg-[#202124] border border-gray-300 dark:border-[#5f6368] rounded-md px-4 py-3 text-gray-900 dark:text-[#e8eaed] focus:border-blue-500 dark:focus:border-[#8ab4f8] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#8ab4f8] transition-all"
+                                                    disabled={activeProfileId === null && !isCreatingProfile}
+                                                />
+
+                                                <label className="block text-gray-900 dark:text-[#e8eaed] text-sm font-medium mt-8 mb-3">Pick a theme color</label>
+                                                <div className="flex flex-wrap gap-4 mb-8">
+                                                    {['#8ab4f8', '#f28b82', '#81c995', '#fde293', '#c58af9', '#5f6368'].map(color => (
+                                                        <button 
+                                                            key={color}
+                                                            onClick={() => updateActiveProfileData(chromeName, color, chromeAvatar, appThemeMode)}
+                                                            disabled={activeProfileId === null && !isCreatingProfile}
+                                                            className={`w-10 h-10 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center ${chromeTheme === color ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-[#292a2d] dark:ring-[#8ab4f8]' : ''}`}
+                                                            style={{ backgroundColor: color }}
+                                                        >
+                                                            {chromeTheme === color && <i className="fa-solid fa-check text-white text-sm"></i>}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                <label className="block text-gray-900 dark:text-[#e8eaed] text-sm font-medium mb-3">App Appearance</label>
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => updateActiveProfileData(chromeName, chromeTheme, chromeAvatar, 'light')}
+                                                        disabled={activeProfileId === null && !isCreatingProfile}
+                                                        className={`flex-1 py-3 rounded-md border flex items-center justify-center gap-2 transition-all ${appThemeMode === 'light' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-[#3c4043] dark:border-[#8ab4f8] dark:text-[#8ab4f8]' : 'bg-white border-gray-300 text-gray-600 dark:bg-black dark:border-[#5f6368] dark:text-[#9aa0a6]'}`}
+                                                    >
+                                                        <i className="fa-solid fa-sun"></i> Light
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => updateActiveProfileData(chromeName, chromeTheme, chromeAvatar, 'dark')}
+                                                        disabled={activeProfileId === null && !isCreatingProfile}
+                                                        className={`flex-1 py-3 rounded-md border flex items-center justify-center gap-2 transition-all ${appThemeMode === 'dark' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-[#3c4043] dark:border-[#8ab4f8] dark:text-[#8ab4f8]' : 'bg-white border-gray-300 text-gray-600 dark:bg-black dark:border-[#5f6368] dark:text-[#9aa0a6]'}`}
+                                                    >
+                                                        <i className="fa-solid fa-moon"></i> Dark
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => updateActiveProfileData(chromeName, chromeTheme, chromeAvatar, 'system')}
+                                                        disabled={activeProfileId === null && !isCreatingProfile}
+                                                        className={`flex-1 py-3 rounded-md border flex items-center justify-center gap-2 transition-all ${appThemeMode === 'system' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-[#3c4043] dark:border-[#8ab4f8] dark:text-[#8ab4f8]' : 'bg-white border-gray-300 text-gray-600 dark:bg-black dark:border-[#5f6368] dark:text-[#9aa0a6]'}`}
+                                                    >
+                                                        <i className="fa-solid fa-desktop"></i> System
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="w-full md:w-48 shrink-0 flex flex-col items-center mt-6 md:mt-0">
+                                                <div className="text-gray-500 dark:text-[#9aa0a6] text-sm mb-4">Preview</div>
+                                                <div className="w-full aspect-[3/4] bg-white dark:bg-[#202124] rounded-lg border border-gray-300 dark:border-[#5f6368] overflow-hidden flex flex-col relative shadow-lg">
+                                                    <div className="h-8 flex items-center px-2" style={{ backgroundColor: chromeTheme }}>
+                                                        <div className="flex gap-1.5">
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/50"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/50"></div>
+                                                            <div className="w-2.5 h-2.5 rounded-full bg-white/50"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 dark:bg-[#292a2d]">
+                                                        {chromeAvatar ? (
+                                                            <img src={chromeAvatar} className="w-12 h-12 rounded-full object-cover shadow-sm mb-2" alt="Preview Avatar"/>
+                                                        ) : (
+                                                            <div className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl shadow-sm mb-2" style={{ backgroundColor: chromeTheme }}>
+                                                                {chromeName ? chromeName.charAt(0).toUpperCase() : '?'}
+                                                            </div>
+                                                        )}
+                                                        <div className="text-[10px] text-gray-800 dark:text-[#e8eaed] truncate w-full px-2 text-center">{chromeName}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeSettingTab === 'sync' && (
+                                    <div className="animate-in fade-in">
+                                        <h3 className="text-2xl font-normal text-gray-900 dark:text-[#e8eaed] mb-6">Advanced sync settings</h3>
+                                        <div className="bg-gray-50 dark:bg-[#292a2d] rounded-xl overflow-hidden mb-8 border border-gray-200 dark:border-[#3c4043]">
+                                            <div className="p-4 border-b border-gray-200 dark:border-[#3c4043] flex items-center justify-between">
+                                                <div className="text-gray-900 dark:text-[#e8eaed] font-medium">Sync everything</div>
+                                                <ToggleSwitch checked={syncEverything} onChange={setSyncEverything} />
+                                            </div>
+                                            
+                                            <div className={`p-4 flex items-center justify-between border-b border-gray-200 dark:border-[#3c4043] transition-opacity ${syncEverything ? 'opacity-50' : 'opacity-100'}`}>
+                                                <div className="text-gray-800 dark:text-[#e8eaed]">Watch History</div>
+                                                <ToggleSwitch checked={syncEverything || syncHistory} onChange={setSyncHistory} disabled={syncEverything} />
+                                            </div>
+                                            <div className={`p-4 flex items-center justify-between transition-opacity ${syncEverything ? 'opacity-50' : 'opacity-100'}`}>
+                                                <div className="text-gray-800 dark:text-[#e8eaed]">Bookmarks & Lists</div>
+                                                <ToggleSwitch checked={syncEverything || syncBookmarks} onChange={setSyncBookmarks} disabled={syncEverything} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {activeSettingTab === 'manage_profiles' && (
+                                    <div className="animate-in fade-in max-w-4xl flex flex-col items-center justify-center pt-10">
+                                        <h3 className="text-3xl font-normal text-gray-900 dark:text-[#e8eaed] mb-2">Who's using AnimePulse?</h3>
+                                        
+                                        <div className="flex flex-wrap justify-center gap-8 mt-10">
+                                            {browserProfiles.map(prof => (
+                                                <div 
+                                                    key={prof.id} 
+                                                    className="flex flex-col items-center gap-3 cursor-pointer group relative"
+                                                    onClick={() => {
+                                                        setChromeName(prof.name);
+                                                        setChromeEmail(prof.email);
+                                                        setChromeTheme(prof.color);
+                                                        setChromeAvatar(prof.avatar);
+                                                        setAppThemeMode(prof.themeMode);
+                                                        setActiveProfileId(prof.id);
+                                                        handleSettingTabChange('account');
+                                                    }}
+                                                >
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setChromeName(prof.name);
+                                                            setChromeEmail(prof.email);
+                                                            setChromeTheme(prof.color);
+                                                            setChromeAvatar(prof.avatar);
+                                                            setAppThemeMode(prof.themeMode);
+                                                            setActiveProfileId(prof.id);
+                                                            setIsCreatingProfile(false);
+                                                            setActiveSettingTab('customise');
+                                                        }}
+                                                        className="absolute -top-1 -left-1 w-7 h-7 bg-white dark:bg-[#303134] hover:bg-gray-100 dark:hover:bg-[#3c4043] border border-gray-300 dark:border-[#5f6368] text-gray-500 dark:text-[#9aa0a6] hover:text-blue-500 dark:hover:text-[#8ab4f8] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg"
+                                                        title="Edit profile"
+                                                    >
+                                                        <i className="fa-solid fa-pen text-xs"></i>
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setBrowserProfiles(prev => prev.filter(p => p.id !== prof.id));
+                                                            if (activeProfileId === prof.id) {
+                                                                setActiveProfileId(null);
+                                                                setChromeName('Guest');
+                                                                setChromeEmail('');
+                                                                setChromeTheme('#5f6368');
+                                                                setChromeAvatar('');
+                                                                setAppThemeMode('dark');
+                                                            }
+                                                        }}
+                                                        className="absolute -top-1 -right-1 w-7 h-7 bg-white dark:bg-[#303134] hover:bg-gray-100 dark:hover:bg-[#3c4043] border border-gray-300 dark:border-[#5f6368] text-gray-500 dark:text-[#9aa0a6] hover:text-red-500 dark:hover:text-[#f28b82] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg"
+                                                        title="Delete profile"
+                                                    >
+                                                        <i className="fa-solid fa-xmark text-sm"></i>
+                                                    </button>
+                                                    
+                                                    {prof.avatar ? (
+                                                        <img src={prof.avatar} className="w-24 h-24 rounded-full object-cover shadow-md transition-transform group-hover:scale-105 border-2" style={{ borderColor: prof.color }} alt={prof.name} />
+                                                    ) : (
+                                                        <div className="w-24 h-24 rounded-full flex items-center justify-center text-4xl text-white shadow-md transition-transform group-hover:scale-105" style={{ backgroundColor: prof.color }}>
+                                                            {prof.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <span className="text-gray-800 dark:text-[#e8eaed] font-medium group-hover:text-blue-600 dark:group-hover:text-white">{prof.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {['customise', 'sync', 'passwords'].includes(activeSettingTab) && (
+                                    <div className="mt-10 pt-6 border-t border-gray-200 dark:border-[#3c4043] flex justify-end gap-3">
+                                        {isCreatingProfile && (
+                                            <button onClick={() => handleSettingTabChange('manage_profiles')} className="bg-transparent border border-gray-300 dark:border-[#5f6368] text-gray-700 dark:text-[#e8eaed] hover:bg-gray-50 dark:hover:bg-[#303134] font-medium px-6 py-2 rounded-md transition-colors text-sm">
+                                                Cancel
+                                            </button>
+                                        )}
+                                        <button onClick={() => {
+                                            if (isCreatingProfile) {
+                                                const newId = Date.now();
+                                                setBrowserProfiles(prev => [...prev, { id: newId, name: chromeName, email: '', color: chromeTheme, avatar: chromeAvatar, themeMode: appThemeMode }]);
+                                                setActiveProfileId(newId);
+                                                setIsCreatingProfile(false);
+                                                showToast("Profile created successfully!");
+                                            } else {
+                                                showToast("Settings saved successfully!");
+                                            }
+                                        }} className="bg-blue-600 dark:bg-[#8ab4f8] hover:bg-blue-700 dark:hover:bg-blue-300 text-white dark:text-[#202124] font-medium px-6 py-2 rounded-md transition-colors text-sm">
+                                            Save Changes
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex h-screen w-screen bg-white dark:bg-black font-sans overflow-hidden transition-colors duration-300">
+                    
+                    <nav className={`h-full bg-gray-50 dark:bg-[#1e1e24] border-r border-gray-200 dark:border-[#2d2d33] flex flex-col transition-all duration-300 relative group z-50 ${isNavPinned ? 'w-64' : 'w-16'}`}>
+                        <button 
+                            onClick={() => setIsNavPinned(!isNavPinned)} 
+                            className="absolute -right-3 top-6 w-6 h-6 bg-white dark:bg-[#2a2a2e] border border-gray-300 dark:border-[#3f3f46] rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white z-50 shadow-md hover:bg-gray-100 dark:hover:bg-[#3f3f46] transition-colors"
+                            title={isNavPinned ? "Unpin sidebar" : "Pin sidebar"}
+                        >
+                            <i className={`fa-solid ${isNavPinned ? 'fa-thumbtack text-xs' : 'fa-chevron-right text-xs'}`}></i>
+                        </button>
+
+                        <div className="p-4 flex items-center gap-3 border-b border-gray-200 dark:border-[#2d2d33] whitespace-nowrap overflow-hidden">
+                            <AnimePulseLogo size={28} showText={isNavPinned} animated={false} />
+                        </div>
+
+                        <div className="p-4 border-b border-gray-200 dark:border-[#2d2d33]">
+                            <div className="relative">
+                                <i className="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500"></i>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search anime..." 
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value);
+                                        if (currentView !== 'list' && currentView !== 'bookmarks' && e.target.value.trim() !== '') {
+                                            setCurrentView('list');
+                                            setActiveTab('All');
+                                        }
+                                    }}
+                                    className={`w-full bg-white dark:bg-[#2a2a2e] border border-gray-300 dark:border-[#3f3f46] text-gray-900 dark:text-white rounded-lg py-2 pl-9 pr-3 text-sm focus:outline-none focus:border-blue-500 transition-all ${isNavPinned ? 'opacity-100' : 'opacity-0'} cursor-pointer`}
+                                    onFocus={() => { if(!isNavPinned) setIsNavPinned(true); }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex-1 py-4 flex flex-col gap-2 px-2 overflow-x-hidden">
+                            <button onClick={() => setCurrentView('home')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap ${currentView === 'home' ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2e] hover:text-gray-900 dark:hover:text-gray-200'}`}>
+                                <i className="fa-solid fa-house w-5 text-center"></i>
+                                <span className={`${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>Home</span>
+                            </button>
+                            <button onClick={() => setCurrentView('list')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap ${currentView === 'list' ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2e] hover:text-gray-900 dark:hover:text-gray-200'}`}>
+                                <i className="fa-solid fa-list w-5 text-center"></i>
+                                <span className={`${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>My List</span>
+                            </button>
+                            <button onClick={() => setCurrentView('bookmarks')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap ${currentView === 'bookmarks' ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2e] hover:text-gray-900 dark:hover:text-gray-200'}`}>
+                                <i className="fa-solid fa-star w-5 text-center"></i>
+                                <span className={`${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>Bookmarks</span>
+                            </button>
+                            <button onClick={() => setCurrentView('profile')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap ${currentView === 'profile' ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2e] hover:text-gray-900 dark:hover:text-gray-200'}`}>
+                                <i className="fa-solid fa-user w-5 text-center"></i>
+                                <span className={`${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>Profile</span>
+                            </button>
+                            <button onClick={() => setCurrentView('settings')} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors whitespace-nowrap ${currentView === 'settings' ? 'bg-blue-50 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#2a2a2e] hover:text-gray-900 dark:hover:text-gray-200'}`}>
+                                <i className="fa-solid fa-gear w-5 text-center"></i>
+                                <span className={`${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>Settings</span>
+                            </button>
+                        </div>
+
+                        <div className="p-4 border-t border-gray-200 dark:border-[#2d2d33] flex items-center gap-3 whitespace-nowrap overflow-hidden bg-gray-100 dark:bg-[#1a1a1f]">
+                            <div className="relative shrink-0">
+                                {chromeAvatar ? (
+                                    <img src={chromeAvatar} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-[#1e1e24] shadow-sm" alt="User" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold border-2 border-white dark:border-[#1e1e24] shadow-sm" style={{ backgroundColor: chromeTheme }}>
+                                        {chromeName ? chromeName.charAt(0).toUpperCase() : '?'}
+                                    </div>
+                                )}
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-[#1a1a1f] rounded-full"></div>
+                            </div>
+                            <div className={`flex flex-col ${isNavPinned ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}>
+                                <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate w-32">{chromeName}</span>
+                                <span className="text-xs text-green-600 dark:text-green-400">Online</span>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="flex-1 bg-white dark:bg-black overflow-hidden relative transition-colors duration-300">
+                        {currentView === 'home' && renderHome()}
+                        {currentView === 'list' && renderList()}
+                        {currentView === 'bookmarks' && renderBookmarks()}
+                        {currentView === 'profile' && renderProfile()}
+                        {currentView === 'settings' && renderSettings()}
+                    </main>
+
+                    {toastMessage && (
+                        <div className="absolute bottom-6 right-6 bg-white dark:bg-[#303134] border border-gray-200 dark:border-[#5f6368] text-gray-900 dark:text-[#e8eaed] px-6 py-3 rounded-lg shadow-2xl z-50 fade-in flex items-center gap-3">
+                            <i className="fa-solid fa-circle-check text-green-500 dark:text-green-400"></i>
+                            {toastMessage}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
